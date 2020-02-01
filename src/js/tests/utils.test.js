@@ -53,3 +53,21 @@ test('calcTileType: bottom-right', () => {
   const received = calcTileType(63, 8);
   expect(received).toEqual(expected);
 });
+
+test('calcHealthLevel: critical', () => {
+  const expected = 'critical';
+  const received = calcHealthLevel(10);
+  expect(received).toEqual(expected);
+});
+
+test('calcHealthLevel: normal', () => {
+  const expected = 'normal';
+  const received = calcHealthLevel(40);
+  expect(received).toEqual(expected);
+});
+
+test('calcHealthLevel: high', () => {
+  const expected = 'high';
+  const received = calcHealthLevel(90);
+  expect(received).toEqual(expected);
+});
