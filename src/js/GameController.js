@@ -1,6 +1,7 @@
 import GamePlay from './GamePlay';
 import themes from './themes';
-import PositionedCharacter from "./PositionedCharacter";
+import PositionedCharacter from './PositionedCharacter';
+import tooltip from './tooltip';
 
 let lightSide = [];
 let darkSide = [];
@@ -27,15 +28,9 @@ export default class GameController {
   onCellEnter(index) {
     // TODO: react to mouse enter
     [...lightSide, ...darkSide].forEach((item) => {
-      item.position === index ? this.gamePlay.showCellTooltip(
-        `${String.fromCodePoint(0x1F396)}${item.character.level} 
-        ${String.fromCodePoint(0x2694)}${item.character.attack} 
-        ${String.fromCodePoint(0x1F6E1)}${item.character.defence} 
-        ${String.fromCodePoint(0x2764)}${item.character.health}`,
-        index,
-      ) : null;
+      if (item.position === index)
+        this.gamePlay.showCellTooltip(tooltip(item.character), index);
     });
-
   }
 
   onCellLeave(index) {
