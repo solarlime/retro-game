@@ -23,6 +23,7 @@ export function generateTeam(allowedTypes, maxLevel, characterCount) {
   const team = [];
 
   for (let i = 0; i < characterCount; i++) {
-    team.push(newHero.next().value());
+    team.push(newHero.next().value);
   }
+  return team;
 }
