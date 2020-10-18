@@ -8,6 +8,7 @@ import Magician from './Magician';
 import Vampire from './Vampire';
 import Daemon from './Daemon';
 import Undead from './Undead';
+import GamePlay from './GamePlay';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -18,13 +19,14 @@ export default class GameController {
       dark: { first: 6, second: 7, characters: [Vampire, Daemon, Undead] },
     };
     this.positionsToDraw = [];
+    this.selected = undefined;
   }
 
   init() {
     this.gamePlay.drawUi(themes.prairie);
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
-    this.gamePlay.addCellClickListener(this.onCellClick);
-    this.gamePlay.addCellLeaveListener(this.onCellLeave);
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
     // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
     // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
@@ -70,12 +72,13 @@ export default class GameController {
 
   onCellEnter(index) {
     this.positionsToDraw.forEach((item) => {
-      if (item.position === index) this.gamePlay.showCellTooltip(tooltip(item.character), index);
+      if (item.position === index) {
+        this.gamePlay.showCellTooltip(tooltip(item.character), index);
+      }
     });
   }
 
   onCellLeave(index) {
-    // TODO: react to mouse leave
-    // this.gamePlay.hideCellTooltip(index);
+    this.gamePlay.hideCellTooltip(index);
   }
 }
