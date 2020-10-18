@@ -9,9 +9,6 @@ import Vampire from './Vampire';
 import Daemon from './Daemon';
 import Undead from './Undead';
 
-const lightSide = [];
-const darkSide = [];
-
 export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
@@ -20,36 +17,37 @@ export default class GameController {
       light: { first: 0, second: 1, characters: [Bowman, Swordsman, Magician] },
       dark: { first: 6, second: 7, characters: [Vampire, Daemon, Undead] },
     };
+    this.positionsToDraw = [];
   }
 
   init() {
     this.gamePlay.drawUi(themes.prairie);
-    // TODO: add event listeners to gamePlay events
-    // TODO: load saved stated from stateService
-    this.gamePlay.addCellEnterListener(this.onCellEnter);
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick);
     this.gamePlay.addCellLeaveListener(this.onCellLeave);
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
+    // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
   }
 
   newGame() {
     const light = this.sidePositions(this.sides.light);
     const dark = this.sidePositions(this.sides.dark);
-    const lightTeam = generateTeam(this.sides.light.characters, 1, 10);
-    const darkTeam = generateTeam(this.sides.dark.characters, 1, 10);
+    const lightTeam = generateTeam(this.sides.light.characters, 1, 2);
+    const darkTeam = generateTeam(this.sides.dark.characters, 1, 2);
 
-    function choose(side) {
+    function choosePoint(side) {
       const index = Math.floor(Math.random() * side.length);
       const point = side[index];
       side.splice(index, 1);
       return point;
     }
 
-    const positionsToDraw = [
-      lightTeam.map((item) => new PositionedCharacter(item, choose(light))),
-      darkTeam.map((item) => new PositionedCharacter(item, choose(dark))),
+    this.positionsToDraw = [
+      lightTeam.map((item) => new PositionedCharacter(item, choosePoint(light))),
+      darkTeam.map((item) => new PositionedCharacter(item, choosePoint(dark))),
     ].flat();
-    this.gamePlay.redrawPositions(positionsToDraw);
+    this.gamePlay.redrawPositions(this.positionsToDraw);
   }
 
   positions() {
@@ -71,8 +69,7 @@ export default class GameController {
   }
 
   onCellEnter(index) {
-    // TODO: react to mouse enter
-    [...lightSide, ...darkSide].forEach((item) => {
+    this.positionsToDraw.forEach((item) => {
       if (item.position === index) this.gamePlay.showCellTooltip(tooltip(item.character), index);
     });
   }
