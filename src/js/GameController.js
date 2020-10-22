@@ -9,6 +9,7 @@ import Vampire from './Vampire';
 import Daemon from './Daemon';
 import Undead from './Undead';
 import GamePlay from './GamePlay';
+import cursors from './cursors';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -91,5 +92,9 @@ export default class GameController {
 
   onCellLeave(index) {
     this.gamePlay.hideCellTooltip(index);
+    if (index !== this.selected?.position) {
+      this.gamePlay.deselectCell(index);
+    }
+    this.gamePlay.setCursor(cursors.auto);
   }
 }
