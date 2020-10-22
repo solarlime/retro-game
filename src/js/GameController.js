@@ -16,11 +16,24 @@ export default class GameController {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
     this.sides = {
-      light: { first: 0, second: 1, characters: [Bowman, Swordsman, Magician] },
-      dark: { first: 6, second: 7, characters: [Vampire, Daemon, Undead] },
+      light: {
+        name: 'light', first: 0, second: 1, characters: [Bowman, Swordsman, Magician],
+      },
+      dark: {
+        name: 'dark', first: 6, second: 7, characters: [Vampire, Daemon, Undead],
+      },
     };
     this.positionsToDraw = [];
     this.selected = undefined;
+    this.movements = [];
+    this.attacks = [];
+    this.statuses = {
+      freespace: 'free space',
+      enemy: 'enemy',
+      allied: 'allied',
+      notallowed: 'notallowed',
+    };
+    this.currentStatus = undefined;
   }
 
   init() {
@@ -48,8 +61,12 @@ export default class GameController {
     }
 
     this.positionsToDraw = [
-      lightTeam.map((item) => new PositionedCharacter(item, choosePoint(light))),
-      darkTeam.map((item) => new PositionedCharacter(item, choosePoint(dark))),
+      lightTeam.map((item) => new PositionedCharacter(
+        item, this.sides.light.name, choosePoint(light),
+      )),
+      darkTeam.map((item) => new PositionedCharacter(
+        item, this.sides.dark.name, choosePoint(dark),
+      )),
     ].flat();
     this.gamePlay.redrawPositions(this.positionsToDraw);
   }
@@ -82,12 +99,78 @@ export default class GameController {
     // TODO: react to click
   }
 
+  resolveArea(point, action) {
+    const area = [];
+    // Определяем пространство по вертикали
+    for (
+      let i = point.position - this.gamePlay.boardSize * action;
+      (i <= point.position + this.gamePlay.boardSize * action);
+      i += this.gamePlay.boardSize
+    ) {
+      // Определяем пространство по горизонтали
+      for (
+        let j = i - action;
+        j <= i + action;
+        j += 1
+      ) {
+        if (
+          // Ограничиваем слева
+          (j >= i - (i % this.gamePlay.boardSize))
+          // Ограничиваем справа
+          && (j < i + (this.gamePlay.boardSize - (i % this.gamePlay.boardSize)))
+        ) {
+          area.push(j);
+        }
+      }
+    }
+    // Удаляем клетку героя из списка возможных ходов
+    area.splice(area.indexOf(point.position), 1);
+    return area;
+  }
+
   onCellEnter(index) {
     this.positionsToDraw.forEach((item) => {
       if (item.position === index) {
         this.gamePlay.showCellTooltip(tooltip(item.character), index);
       }
     });
+
+    if (this.selected) {
+      const actions = {
+        distance: this.selected.character.distance,
+        distanceAttack: this.selected.character.distanceAttack,
+      };
+      this.movements = this.resolveArea(this.selected, actions.distance)
+        // Оставляем только клетки, не занятые героями
+        .filter((item) => this.positionsToDraw.findIndex((hero) => hero.position === item) === -1);
+      this.attacks = this.resolveArea(this.selected, actions.distanceAttack)
+        // Оставляем только клетки, не занятые героями
+        .filter((item) => this.positionsToDraw.findIndex((hero) => (hero.position === item)
+          && (hero.side === this.sides.light.name)) === -1);
+
+      // Клетка доступна для хода
+      if (this.movements.includes(index)) {
+        this.gamePlay.selectCell(index, 'green');
+        this.gamePlay.setCursor(cursors.pointer);
+        this.currentStatus = this.statuses.freespace;
+      //  Клетка доступна для атаки
+      } else if (this.attacks.includes(index)
+        && this.positionsToDraw.filter((item) => item.side === this.sides.dark.name)
+          .find((item) => item.position === index)) {
+        this.gamePlay.selectCell(index, 'red');
+        this.gamePlay.setCursor(cursors.crosshair);
+        this.currentStatus = this.statuses.enemy;
+      //  Клетка занята союзником
+      } else if (this.positionsToDraw.filter((item) => item.side === this.sides.light.name)
+        .find((item) => (item.position === index) && (item.position !== this.selected.position))) {
+        this.gamePlay.setCursor(cursors.pointer);
+        this.currentStatus = this.statuses.allied;
+      //  Иная ситуация
+      } else {
+        this.gamePlay.setCursor(cursors.notallowed);
+        this.currentStatus = this.statuses.notallowed;
+      }
+    }
   }
 
   onCellLeave(index) {
