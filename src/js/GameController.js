@@ -28,6 +28,7 @@ export default class GameController {
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
+    this.gamePlay.addEscListener(this.onEsc.bind(this));
     // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
     // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
   }
@@ -64,6 +65,16 @@ export default class GameController {
     const field = this.positions();
     return field.array.filter((item) => (item % field.lineLength === side.first)
       || (item % field.lineLength === side.second)).map((item) => item);
+  }
+
+  onEsc() {
+    if (this.selected) {
+      this.gamePlay.deselectCell(this.selected.position);
+    }
+    this.selected = undefined;
+    this.movements = [];
+    this.attacks = [];
+    this.currentStatus = undefined;
   }
 
   onCellClick(index) {

@@ -12,6 +12,7 @@ export default class GamePlay {
     this.newGameListeners = [];
     this.saveGameListeners = [];
     this.loadGameListeners = [];
+    this.escListener = null;
   }
 
   bindToDOM(container) {
@@ -59,6 +60,7 @@ export default class GamePlay {
       cellEl.addEventListener('click', (event) => this.onCellClick(event));
       this.boardEl.appendChild(cellEl);
     }
+    document.addEventListener('keydown', (event) => this.onEsc(event));
 
     this.cells = Array.from(this.boardEl.children);
   }
@@ -89,6 +91,15 @@ export default class GamePlay {
       charEl.appendChild(healthEl);
       cellEl.appendChild(charEl);
     }
+  }
+
+  /**
+   * Add listener to Esc pressing
+   *
+   * @param callback
+   */
+  addEscListener(callback) {
+    this.escListener = callback;
   }
 
   /**
@@ -145,6 +156,13 @@ export default class GamePlay {
     this.loadGameListeners.push(callback);
   }
 
+  onEsc(event) {
+    event.preventDefault();
+    if (event.key === 'Escape') {
+      this.escListener();
+    }
+  }
+
   onCellEnter(event) {
     event.preventDefault();
     const index = this.cells.indexOf(event.currentTarget);
@@ -187,12 +205,12 @@ export default class GamePlay {
 
   selectCell(index, color = 'yellow') {
     this.deselectCell(index);
-    this.cells[index].classList.add('selected', `selected-${color}`);
+    this.cells[index]?.classList.add('selected', `selected-${color}`);
   }
 
   deselectCell(index) {
     const cell = this.cells[index];
-    cell.classList.remove(...Array.from(cell.classList)
+    cell?.classList.remove(...Array.from(cell.classList)
       .filter((o) => o.startsWith('selected')));
   }
 
