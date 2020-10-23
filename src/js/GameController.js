@@ -96,7 +96,33 @@ export default class GameController {
   }
 
   onCellClick(index) {
-    // TODO: react to click
+    // Выделен ли кто-то
+    const point = this.positionsToDraw.find((item) => item.position === index);
+    if (this.selected === undefined) {
+      // Не выделен
+      if (!point) {
+      //  Не делай ничего
+      } else if (['bowman', 'swordsman', 'magician'].includes(point.character.type)) {
+        this.selected = point;
+        this.gamePlay.selectCell(index);
+      } else {
+        GamePlay.showError('This character is not playable!');
+      }
+    } else if (this.currentStatus === this.statuses.freespace) {
+      // Чтобы двигать
+      [this.selected.position, index].forEach((cell) => this.gamePlay.deselectCell(cell));
+      this.selected.position = index;
+      this.gamePlay.redrawPositions(this.positionsToDraw);
+      this.selected = undefined;
+    } else if (this.currentStatus === this.statuses.allied) {
+      this.gamePlay.deselectCell(this.selected.position);
+      this.selected = point;
+      this.gamePlay.selectCell(index);
+    } else if (this.currentStatus === this.statuses.enemy) {
+      console.log('Атака!');
+    } else {
+      GamePlay.showError('This action is not allowed!');
+    }
   }
 
   resolveArea(point, action) {
