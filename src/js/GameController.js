@@ -135,6 +135,7 @@ export default class GameController {
       }
     });
 
+    // Если кто-то выделен
     if (this.selected) {
       const actions = {
         distance: this.selected.character.distance,
@@ -170,6 +171,14 @@ export default class GameController {
         this.gamePlay.setCursor(cursors.notallowed);
         this.currentStatus = this.statuses.notallowed;
       }
+    //  Если никто не выделен
+    } else if (this.positionsToDraw.filter((hero) => hero.side === this.sides.light.name)
+      .find((item) => item.position === index)) {
+      // Союзникам - pointer
+      this.gamePlay.setCursor(cursors.pointer);
+    } else {
+      // Иначе - auto
+      this.gamePlay.setCursor(cursors.auto);
     }
   }
 
