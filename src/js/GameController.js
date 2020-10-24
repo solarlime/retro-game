@@ -48,6 +48,8 @@ export default class GameController {
   }
 
   newGame() {
+    this.gamePlay.deselectAll();
+    this.selected = undefined;
     const light = this.sidePositions(this.sides.light);
     const dark = this.sidePositions(this.sides.dark);
     const lightTeam = generateTeam(this.sides.light.characters, 1, 2);
@@ -119,7 +121,12 @@ export default class GameController {
       this.selected = point;
       this.gamePlay.selectCell(index);
     } else if (this.currentStatus === this.statuses.enemy) {
-      console.log('Атака!');
+      const victim = this.positionsToDraw.find((hero) => hero.position === index);
+      const damageToVictim = Math.max(this.selected.character.attack
+        - victim.character.defence, this.selected.character.attack * 0.1);
+      victim.character.health -= damageToVictim;
+      this.gamePlay.showDamage(index, damageToVictim)
+        .then(() => this.gamePlay.redrawPositions(this.positionsToDraw));
     } else {
       GamePlay.showError('This action is not allowed!');
       this.gamePlay.deselectCell(this.selected.position);
