@@ -116,17 +116,48 @@ export default class GameController {
       this.selected.position = index;
       this.gamePlay.redrawPositions(this.positionsToDraw);
       this.selected = undefined;
+      // Щёлкнули по союзнику
     } else if (this.currentStatus === this.statuses.allied) {
       this.gamePlay.deselectCell(this.selected.position);
       this.selected = point;
       this.gamePlay.selectCell(index);
+      // Щёлкнули по врагу
     } else if (this.currentStatus === this.statuses.enemy) {
       const victim = this.positionsToDraw.find((hero) => hero.position === index);
       const damageToVictim = Math.max(this.selected.character.attack
         - victim.character.defence, this.selected.character.attack * 0.1);
       victim.character.health -= damageToVictim;
       this.gamePlay.showDamage(index, damageToVictim)
-        .then(() => this.gamePlay.redrawPositions(this.positionsToDraw));
+        .then(() => this.gamePlay.redrawPositions(this.positionsToDraw))
+        // Ответ компьютера
+        .then(() => {
+          this.gamePlay.deselectAll();
+          const darks = this.positionsToDraw.filter((hero) => hero.side === this.sides.dark.name);
+          // Атаковать будет самый сильный персонаж
+          const revenger = darks.find(
+            (item) => item.character.attack === Math.max.apply(
+              null, darks.map((hero) => hero.character.attack),
+            ),
+          );
+          return new Promise((resolve, reject) => {
+            const damageToAttacker = Math.max(revenger.character.attack
+              - this.selected.character.defence, revenger.character.attack * 0.1);
+            // Если цель в пределах атаки - к бою!
+            if (this.resolveArea(revenger, revenger.character.distanceAttack)
+              .find((item) => item === this.selected.position)) {
+              this.selected.character.health -= damageToAttacker;
+              resolve(this.gamePlay.showDamage(this.selected.position, damageToAttacker));
+            //  Иначе - движемся к нему
+            } else {
+              reject();
+            }
+          });
+        }).then(() => this.gamePlay.redrawPositions(this.positionsToDraw),
+          () => { console.log('Too far'); })
+        .then(() => {
+          this.selected = undefined;
+        });
+      //  В ином случае - ошибка
     } else {
       GamePlay.showError('This action is not allowed!');
       this.gamePlay.deselectCell(this.selected.position);
