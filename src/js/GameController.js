@@ -87,7 +87,7 @@ export default class GameController {
 
   onEsc() {
     if (this.selected) {
-      this.gamePlay.deselectCell(this.selected.position);
+      this.gamePlay.deselectAll();
     }
     this.selected = undefined;
     this.movements = [];
@@ -122,6 +122,8 @@ export default class GameController {
       console.log('Атака!');
     } else {
       GamePlay.showError('This action is not allowed!');
+      this.gamePlay.deselectCell(this.selected.position);
+      this.selected = undefined;
     }
   }
 

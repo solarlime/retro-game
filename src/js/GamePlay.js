@@ -214,6 +214,11 @@ export default class GamePlay {
       .filter((o) => o.startsWith('selected')));
   }
 
+  deselectAll() {
+    const { cells } = this;
+    cells.forEach((cell) => this.deselectCell(cells.indexOf(cell)));
+  }
+
   showCellTooltip(message, index) {
     this.cells[index].title = message;
   }
