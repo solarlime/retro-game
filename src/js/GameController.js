@@ -97,6 +97,42 @@ export default class GameController {
     this.currentStatus = undefined;
   }
 
+  moveRevenger(revenger, attacker) {
+    const movements = this.resolveArea(revenger, revenger.character.distance)
+      .filter((item) => this.positionsToDraw.findIndex((hero) => hero.position === item) === -1);
+    movements.forEach((item) => this.gamePlay.selectCell(item));
+    const coordinates = (hero) => ({
+      x: hero.position % this.gamePlay.boardSize,
+      y: Math.floor(hero.position / this.gamePlay.boardSize),
+    });
+    const fighters = {
+      revenger: coordinates(revenger),
+      attacker: coordinates(attacker),
+    };
+    console.log(movements);
+    console.log('revenger: ', fighters.revenger.x, fighters.revenger.y);
+    console.log('attacker: ', fighters.attacker.x, fighters.attacker.y);
+    console.log(fighters.revenger.x - fighters.attacker.x, fighters.revenger.y - fighters.attacker.y);
+    // Вариант 1: движемся влево и вверх
+    if ((fighters.attacker.x <= fighters.revenger.x)
+      && (fighters.attacker.y <= fighters.revenger.y)) {
+      console.log('wow');
+      const probablePlaces = movements.filter(
+        // Ограничиваем слева
+        (item) => ((item % this.gamePlay.boardSize) >= fighters.attacker.x)
+          // Ограничиваем справа
+          && ((item % this.gamePlay.boardSize) <= fighters.revenger.x)
+          // Ограничиваем снизу
+          && (Math.floor(item / this.gamePlay.boardSize) <= fighters.revenger.y)
+          // Ограничиваем сверху
+          && (Math.floor(item / this.gamePlay.boardSize) >= fighters.attacker.y),
+      );
+      console.log(probablePlaces);
+      revenger.position = probablePlaces[Math.floor(Math.random() * probablePlaces.length)];
+      this.gamePlay.redrawPositions(this.positionsToDraw);
+    }
+  }
+
   onCellClick(index) {
     // Выделен ли кто-то
     const point = this.positionsToDraw.find((item) => item.position === index);
@@ -149,11 +185,11 @@ export default class GameController {
               resolve(this.gamePlay.showDamage(this.selected.position, damageToAttacker));
             //  Иначе - движемся к нему
             } else {
-              reject();
+              reject(revenger);
             }
           });
         }).then(() => this.gamePlay.redrawPositions(this.positionsToDraw),
-          () => { console.log('Too far'); })
+          (revenger) => { console.log('Too far'); this.moveRevenger(revenger, this.selected); })
         .then(() => {
           this.selected = undefined;
         });
