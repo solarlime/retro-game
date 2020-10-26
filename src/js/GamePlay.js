@@ -157,8 +157,8 @@ export default class GamePlay {
   }
 
   onEsc(event) {
-    event.preventDefault();
     if (event.key === 'Escape') {
+      event.preventDefault();
       this.escListener();
     }
   }
