@@ -174,18 +174,20 @@ export default class GameController {
       i += this.gamePlay.boardSize
     ) {
       // Определяем пространство по горизонтали
-      for (
-        let j = i - action;
-        j <= i + action;
-        j += 1
-      ) {
-        if (
-          // Ограничиваем слева
-          (j >= i - (i % this.gamePlay.boardSize))
-          // Ограничиваем справа
-          && (j < i + (this.gamePlay.boardSize - (i % this.gamePlay.boardSize)))
+      if ((i >= 0) && (i < this.gamePlay.boardSize ** 2)) {
+        for (
+          let j = i - action;
+          j <= i + action;
+          j += 1
         ) {
-          area.push(j);
+          if (
+            // Ограничиваем слева
+            (j >= i - (i % this.gamePlay.boardSize))
+            // Ограничиваем справа
+            && (j < i + (this.gamePlay.boardSize - (i % this.gamePlay.boardSize)))
+          ) {
+            area.push(j);
+          }
         }
       }
     }
