@@ -109,28 +109,64 @@ export default class GameController {
       revenger: coordinates(revenger),
       attacker: coordinates(attacker),
     };
-    console.log(movements);
-    console.log('revenger: ', fighters.revenger.x, fighters.revenger.y);
-    console.log('attacker: ', fighters.attacker.x, fighters.attacker.y);
-    console.log(fighters.revenger.x - fighters.attacker.x, fighters.revenger.y - fighters.attacker.y);
-    // Вариант 1: движемся влево и вверх
-    if ((fighters.attacker.x <= fighters.revenger.x)
-      && (fighters.attacker.y <= fighters.revenger.y)) {
-      console.log('wow');
-      const probablePlaces = movements.filter(
-        // Ограничиваем слева
-        (item) => ((item % this.gamePlay.boardSize) >= fighters.attacker.x)
+
+    const probablePlaces = () => {
+      // Вариант 1: движемся влево
+      if (fighters.attacker.x <= fighters.revenger.x) {
+        // Вариант 1.1: движемся влево и вверх
+        if (fighters.attacker.y <= fighters.revenger.y) {
+          return movements.filter(
+            // Ограничиваем слева
+            (item) => ((item % this.gamePlay.boardSize) >= fighters.attacker.x)
+              // Ограничиваем справа
+              && ((item % this.gamePlay.boardSize) <= fighters.revenger.x)
+              // Ограничиваем снизу
+              && (Math.floor(item / this.gamePlay.boardSize) <= fighters.revenger.y)
+              // Ограничиваем сверху
+              && (Math.floor(item / this.gamePlay.boardSize) >= fighters.attacker.y),
+          );
+        }
+        //  Вариант 1.2: движемся влево и вниз
+        return movements.filter(
+          // Ограничиваем слева
+          (item) => ((item % this.gamePlay.boardSize) >= fighters.attacker.x)
+            // Ограничиваем справа
+            && ((item % this.gamePlay.boardSize) <= fighters.revenger.x)
+            // Ограничиваем сверху
+            && (Math.floor(item / this.gamePlay.boardSize) > fighters.revenger.y)
+            // Ограничиваем снизу
+            && (Math.floor(item / this.gamePlay.boardSize) <= fighters.attacker.y),
+        );
+      }
+      //  Вариант 2: движемся вправо
+      // Вариант 2.1: движемся вправо и вверх
+      if (fighters.attacker.y <= fighters.revenger.y) {
+        return movements.filter(
           // Ограничиваем справа
-          && ((item % this.gamePlay.boardSize) <= fighters.revenger.x)
-          // Ограничиваем снизу
-          && (Math.floor(item / this.gamePlay.boardSize) <= fighters.revenger.y)
+          (item) => ((item % this.gamePlay.boardSize) <= fighters.attacker.x)
+            // Ограничиваем слева
+            && ((item % this.gamePlay.boardSize) > fighters.revenger.x)
+            // Ограничиваем снизу
+            && (Math.floor(item / this.gamePlay.boardSize) <= fighters.revenger.y)
+            // Ограничиваем сверху
+            && (Math.floor(item / this.gamePlay.boardSize) >= fighters.attacker.y),
+        );
+      }
+      //  Вариант 2.2: движемся вправо и вниз
+      return movements.filter(
+        // Ограничиваем справа
+        (item) => ((item % this.gamePlay.boardSize) <= fighters.attacker.x)
+          // Ограничиваем слева
+          && ((item % this.gamePlay.boardSize) > fighters.revenger.x)
           // Ограничиваем сверху
-          && (Math.floor(item / this.gamePlay.boardSize) >= fighters.attacker.y),
+          && (Math.floor(item / this.gamePlay.boardSize) > fighters.revenger.y)
+          // Ограничиваем снизу
+          && (Math.floor(item / this.gamePlay.boardSize) <= fighters.attacker.y),
       );
-      console.log(probablePlaces);
-      revenger.position = probablePlaces[Math.floor(Math.random() * probablePlaces.length)];
-      this.gamePlay.redrawPositions(this.positionsToDraw);
-    }
+    };
+
+    const probables = probablePlaces();
+    return probables[Math.floor(Math.random() * probablePlaces.length)];
   }
 
   onCellClick(index) {
@@ -182,15 +218,21 @@ export default class GameController {
             if (this.resolveArea(revenger, revenger.character.distanceAttack)
               .find((item) => item === this.selected.position)) {
               this.selected.character.health -= damageToAttacker;
-              resolve(this.gamePlay.showDamage(this.selected.position, damageToAttacker));
+              resolve(damageToAttacker);
             //  Иначе - движемся к нему
             } else {
               reject(revenger);
             }
           });
-        }).then(() => this.gamePlay.redrawPositions(this.positionsToDraw),
-          (revenger) => { console.log('Too far'); this.moveRevenger(revenger, this.selected); })
+        }).then(
+          (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
+          (revenger) => {
+            // eslint-disable-next-line no-param-reassign
+            revenger.position = this.moveRevenger(revenger, this.selected);
+          },
+        )
         .then(() => {
+          this.gamePlay.redrawPositions(this.positionsToDraw);
           this.selected = undefined;
         });
       //  В ином случае - ошибка
