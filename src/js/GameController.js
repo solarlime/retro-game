@@ -100,7 +100,6 @@ export default class GameController {
   moveRevenger(revenger, attacker) {
     const movements = this.resolveArea(revenger, revenger.character.distance)
       .filter((item) => this.positionsToDraw.findIndex((hero) => hero.position === item) === -1);
-    movements.forEach((item) => this.gamePlay.selectCell(item));
     const coordinates = (hero) => ({
       x: hero.position % this.gamePlay.boardSize,
       y: Math.floor(hero.position / this.gamePlay.boardSize),
@@ -169,6 +168,30 @@ export default class GameController {
     return probables[Math.floor(Math.random() * probablePlaces.length)];
   }
 
+  moveDarksAndAttack() {
+    this.gamePlay.deselectAll();
+    const darks = this.positionsToDraw.filter((hero) => hero.side === this.sides.dark.name);
+    // Атаковать будет самый сильный персонаж
+    const revenger = darks.find(
+      (item) => item.character.attack === Math.max.apply(
+        null, darks.map((hero) => hero.character.attack),
+      ),
+    );
+    return new Promise((resolve, reject) => {
+      const damageToAttacker = Math.max(revenger.character.attack
+        - this.selected.character.defence, revenger.character.attack * 0.1);
+      // Если цель в пределах атаки - к бою!
+      if (this.resolveArea(revenger, revenger.character.distanceAttack)
+        .find((item) => item === this.selected.position)) {
+        this.selected.character.health -= damageToAttacker;
+        resolve(damageToAttacker);
+        //  Иначе - движемся к нему
+      } else {
+        reject(revenger);
+      }
+    });
+  }
+
   onCellClick(index) {
     // Выделен ли кто-то
     const point = this.positionsToDraw.find((item) => item.position === index);
@@ -187,7 +210,21 @@ export default class GameController {
       [this.selected.position, index].forEach((cell) => this.gamePlay.deselectCell(cell));
       this.selected.position = index;
       this.gamePlay.redrawPositions(this.positionsToDraw);
-      this.selected = undefined;
+      this.moveDarksAndAttack()
+        .then(
+          (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
+          (revenger) => {
+            // eslint-disable-next-line no-param-reassign
+            revenger.position = this.moveRevenger(revenger, this.selected);
+          },
+        )
+        .then(() => {
+          if (this.selected.character.health <= 0) {
+            this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
+          }
+          this.gamePlay.redrawPositions(this.positionsToDraw);
+          this.selected = undefined;
+        });
       // Щёлкнули по союзнику
     } else if (this.currentStatus === this.statuses.allied) {
       this.gamePlay.deselectCell(this.selected.position);
@@ -202,29 +239,8 @@ export default class GameController {
       this.gamePlay.showDamage(index, damageToVictim)
         .then(() => this.gamePlay.redrawPositions(this.positionsToDraw))
         // Ответ компьютера
-        .then(() => {
-          this.gamePlay.deselectAll();
-          const darks = this.positionsToDraw.filter((hero) => hero.side === this.sides.dark.name);
-          // Атаковать будет самый сильный персонаж
-          const revenger = darks.find(
-            (item) => item.character.attack === Math.max.apply(
-              null, darks.map((hero) => hero.character.attack),
-            ),
-          );
-          return new Promise((resolve, reject) => {
-            const damageToAttacker = Math.max(revenger.character.attack
-              - this.selected.character.defence, revenger.character.attack * 0.1);
-            // Если цель в пределах атаки - к бою!
-            if (this.resolveArea(revenger, revenger.character.distanceAttack)
-              .find((item) => item === this.selected.position)) {
-              this.selected.character.health -= damageToAttacker;
-              resolve(damageToAttacker);
-            //  Иначе - движемся к нему
-            } else {
-              reject(revenger);
-            }
-          });
-        }).then(
+        .then(() => this.moveDarksAndAttack())
+        .then(
           (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
           (revenger) => {
             // eslint-disable-next-line no-param-reassign
@@ -232,6 +248,9 @@ export default class GameController {
           },
         )
         .then(() => {
+          if (this.selected.character.health <= 0) {
+            this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
+          }
           this.gamePlay.redrawPositions(this.positionsToDraw);
           this.selected = undefined;
         });
