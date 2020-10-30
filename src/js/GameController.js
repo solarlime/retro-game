@@ -97,7 +97,7 @@ export default class GameController {
     this.currentStatus = undefined;
   }
 
-  moveRevenger(revenger, attacker) {
+  moveRevenger(revenger, attacker, darks) {
     const movements = this.resolveArea(revenger, revenger.character.distance)
       .filter((item) => this.positionsToDraw.findIndex((hero) => hero.position === item) === -1);
     const coordinates = (hero) => ({
@@ -165,6 +165,17 @@ export default class GameController {
     };
 
     const probables = probablePlaces();
+    if (!probables.length) {
+      if (!movements.length) {
+        const otherDarks = [...darks];
+        otherDarks.splice(darks.indexOf(revenger), 1);
+        // eslint-disable-next-line no-param-reassign
+        revenger = otherDarks[Math.floor(Math.random() * otherDarks.length)];
+      }
+      const randomMovements = this.resolveArea(revenger, revenger.character.distance)
+        .filter((item) => this.positionsToDraw.findIndex((hero) => hero.position === item) === -1);
+      return randomMovements[Math.floor(Math.random() * randomMovements.length)];
+    }
     return probables[Math.floor(Math.random() * probablePlaces.length)];
   }
 
@@ -187,7 +198,8 @@ export default class GameController {
         resolve(damageToAttacker);
         //  Иначе - движемся к нему
       } else {
-        reject(revenger);
+        // eslint-disable-next-line prefer-promise-reject-errors
+        reject({ revenger, darks });
       }
     });
   }
@@ -213,9 +225,9 @@ export default class GameController {
       this.moveDarksAndAttack()
         .then(
           (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
-          (revenger) => {
-            // eslint-disable-next-line no-param-reassign
-            revenger.position = this.moveRevenger(revenger, this.selected);
+          (reject) => {
+            // eslint-disable-next-line no-param-reassign,max-len
+            reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
           },
         )
         .then(() => {
@@ -242,9 +254,9 @@ export default class GameController {
         .then(() => this.moveDarksAndAttack())
         .then(
           (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
-          (revenger) => {
-            // eslint-disable-next-line no-param-reassign
-            revenger.position = this.moveRevenger(revenger, this.selected);
+          (reject) => {
+            // eslint-disable-next-line no-param-reassign,max-len
+            reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
           },
         )
         .then(() => {
