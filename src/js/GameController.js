@@ -47,13 +47,13 @@ export default class GameController {
     // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
   }
 
-  newGame() {
+  newGame(level = 1) {
     this.gamePlay.deselectAll();
     this.selected = undefined;
     const light = this.sidePositions(this.sides.light);
     const dark = this.sidePositions(this.sides.dark);
-    const lightTeam = generateTeam(this.sides.light.characters, 1, 2);
-    const darkTeam = generateTeam(this.sides.dark.characters, 1, 2);
+    const lightTeam = generateTeam(this.sides.light.characters, level, 2);
+    const darkTeam = generateTeam(this.sides.dark.characters, level, 2);
 
     function choosePoint(side) {
       const index = Math.floor(Math.random() * side.length);
@@ -248,24 +248,34 @@ export default class GameController {
       const damageToVictim = Math.max(this.selected.character.attack
         - victim.character.defence, this.selected.character.attack * 0.1);
       victim.character.health -= damageToVictim;
-      this.gamePlay.showDamage(index, damageToVictim)
-        .then(() => this.gamePlay.redrawPositions(this.positionsToDraw))
-        // Ответ компьютера
-        .then(() => this.moveDarksAndAttack())
-        .then(
-          (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
-          (reject) => {
-            // eslint-disable-next-line no-param-reassign,max-len
-            reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
-          },
-        )
-        .then(() => {
-          if (this.selected.character.health <= 0) {
-            this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
-          }
-          this.gamePlay.redrawPositions(this.positionsToDraw);
-          this.selected = undefined;
-        });
+      // Если убили - удаляем с поля
+      if (victim.character.health <= 0) {
+        this.positionsToDraw.splice(this.positionsToDraw.indexOf(victim), 1);
+        this.gamePlay.redrawPositions(this.positionsToDraw);
+        this.selected = undefined;
+        this.gamePlay.deselectAll();
+      } else {
+        this.gamePlay.showDamage(index, damageToVictim)
+          .then(() => this.gamePlay.redrawPositions(this.positionsToDraw))
+          // Ответ компьютера
+          .then(() => this.moveDarksAndAttack())
+          .then(
+            (damageToAttacker) => this.gamePlay
+              .showDamage(this.selected.position, damageToAttacker),
+            (reject) => {
+              // eslint-disable-next-line no-param-reassign,max-len
+              reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
+            },
+          )
+          .then(() => {
+            // Если убили - удаляем с поля
+            if (this.selected.character.health <= 0) {
+              this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
+            }
+            this.gamePlay.redrawPositions(this.positionsToDraw);
+            this.selected = undefined;
+          });
+      }
       //  В ином случае - ошибка
     } else {
       GamePlay.showError('This action is not allowed!');
