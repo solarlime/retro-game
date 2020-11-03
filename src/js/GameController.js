@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign, max-len,no-inner-declarations */
 import themes from './themes';
 import PositionedCharacter from './PositionedCharacter';
 import tooltip from './tooltip';
@@ -34,6 +35,8 @@ export default class GameController {
       notallowed: 'notallowed',
     };
     this.currentStatus = undefined;
+    this.level = 1;
+    this.score = 0;
   }
 
   init() {
@@ -41,7 +44,7 @@ export default class GameController {
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addNewGameListener(this.newGame.bind(this));
+    this.gamePlay.addNewGameListener(this.newGame.bind(this, this.level));
     this.gamePlay.addEscListener(this.onEsc.bind(this));
     // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
     // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
@@ -52,9 +55,8 @@ export default class GameController {
     this.selected = undefined;
     const light = this.sidePositions(this.sides.light);
     const dark = this.sidePositions(this.sides.dark);
-    const lightTeam = generateTeam(this.sides.light.characters, level, 2);
-    const darkTeam = generateTeam(this.sides.dark.characters, level, 2);
 
+    // Вспомогательная функция для выбора клетки
     function choosePoint(side) {
       const index = Math.floor(Math.random() * side.length);
       const point = side[index];
@@ -62,14 +64,41 @@ export default class GameController {
       return point;
     }
 
-    this.positionsToDraw = [
-      lightTeam.map((item) => new PositionedCharacter(
-        item, this.sides.light.name, choosePoint(light),
-      )),
-      darkTeam.map((item) => new PositionedCharacter(
-        item, this.sides.dark.name, choosePoint(dark),
-      )),
-    ].flat();
+    if (level === 1) {
+      this.positionsToDraw = [];
+    }
+
+    // Если игра начинается с начала
+    if (!this.positionsToDraw.length) {
+      const darkTeam = generateTeam(this.sides.dark.characters, level, 2);
+      const lightTeam = generateTeam(this.sides.light.characters, level, 2);
+      this.positionsToDraw = [
+        lightTeam.map((item) => new PositionedCharacter(
+          item, this.sides.light.name, choosePoint(light),
+        )),
+        darkTeam.map((item) => new PositionedCharacter(
+          item, this.sides.dark.name, choosePoint(dark),
+        )),
+      ].flat();
+    //  Иначе:
+    } else {
+      // Возвращаем оставшихся на исходные позиции
+      this.positionsToDraw.forEach((hero) => { hero.position = choosePoint(light); });
+      // Убираем уже занятые клетки из массива возможных для позиционирования
+      const lightFiltered = this.sidePositions(this.sides.light).filter(
+        (cell) => !this.positionsToDraw.find((hero) => hero.position === cell),
+      );
+      const darkTeam = generateTeam(this.sides.dark.characters, level, level * 2, true);
+      const lightTeam = generateTeam(this.sides.light.characters, level, 2);
+      this.positionsToDraw.push(lightTeam.map(
+        (item) => new PositionedCharacter(item, this.sides.light.name, choosePoint(lightFiltered)),
+      ));
+      this.positionsToDraw.push(darkTeam.map(
+        (item) => new PositionedCharacter(item, this.sides.dark.name, choosePoint(dark)),
+      ));
+      this.positionsToDraw = this.positionsToDraw.flat();
+      GamePlay.showError('The enemies are furious! Be careful!');
+    }
     this.gamePlay.redrawPositions(this.positionsToDraw);
   }
 
@@ -95,6 +124,30 @@ export default class GameController {
     this.movements = [];
     this.attacks = [];
     this.currentStatus = undefined;
+  }
+
+  levelUp() {
+    this.level += 1;
+    this.positionsToDraw.forEach((hero) => {
+      hero.character.level = this.level;
+      hero.character.attack = Math.ceil(Math.max(hero.character.attack, hero.character.attack * (1.8 - hero.character.health / 100)));
+      hero.character.health = (hero.character.health + 80 > 100) ? 100 : Math.ceil(hero.character.health + 80);
+    });
+    switch (this.level) {
+      case 2:
+        this.gamePlay.drawUi(themes.desert);
+        break;
+      case 3:
+        this.gamePlay.drawUi(themes.arctic);
+        break;
+      case 4:
+        this.gamePlay.drawUi(themes.mountain);
+        break;
+      default:
+        this.gamePlay.drawUi(themes.prairie);
+        break;
+    }
+    return this.level;
   }
 
   moveRevenger(revenger, attacker, darks) {
@@ -169,7 +222,6 @@ export default class GameController {
       if (!movements.length) {
         const otherDarks = [...darks];
         otherDarks.splice(darks.indexOf(revenger), 1);
-        // eslint-disable-next-line no-param-reassign
         revenger = otherDarks[Math.floor(Math.random() * otherDarks.length)];
       }
       const randomMovements = this.resolveArea(revenger, revenger.character.distance)
@@ -206,13 +258,14 @@ export default class GameController {
 
   onCellClick(index) {
     function wrapperForActionsAfterEnemyLogic() {
-      if (this.selected.character.health <= 0) {
+      if (this.selected?.character.health <= 0) {
         this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
       }
       this.gamePlay.redrawPositions(this.positionsToDraw);
       this.selected = undefined;
       // Проигрыш :(
       if (!this.positionsToDraw.find((item) => item.side === this.sides.light.name)) {
+        this.gamePlay.drawUi(themes.prairie);
         GamePlay.showError('Game over!');
       }
     }
@@ -238,7 +291,6 @@ export default class GameController {
         .then(
           (damageToAttacker) => this.gamePlay.showDamage(this.selected.position, damageToAttacker),
           (reject) => {
-            // eslint-disable-next-line no-param-reassign,max-len
             reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
           },
         )
@@ -262,14 +314,20 @@ export default class GameController {
         // Убил противника: либо победа, либо он отвечает
         if (!this.positionsToDraw.find((item) => item.side === this.sides.dark.name)) {
           this.selected = undefined;
-          GamePlay.showError('Victory!');
+          this.score = this.positionsToDraw.reduce((accumulator, hero) => accumulator + hero.character.health, this.score);
+          if (this.level === 4) {
+            this.gamePlay.drawUi(themes.prairie);
+            GamePlay.showError(`Victory! Your score is ${this.score}.`);
+          } else {
+            GamePlay.showError(`Level up! Your score is ${this.score}.`);
+            this.newGame(this.levelUp());
+          }
         } else {
           this.moveDarksAndAttack()
             .then(
               (damageToAttacker) => this.gamePlay
                 .showDamage(this.selected.position, damageToAttacker),
               (reject) => {
-                // eslint-disable-next-line no-param-reassign,max-len
                 reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
               },
             )
@@ -284,7 +342,6 @@ export default class GameController {
             (damageToAttacker) => this.gamePlay
               .showDamage(this.selected.position, damageToAttacker),
             (reject) => {
-              // eslint-disable-next-line no-param-reassign,max-len
               reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
             },
           )
