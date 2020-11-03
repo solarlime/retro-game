@@ -244,7 +244,7 @@ export default class GameController {
         )
         .then(wrapperForActionsAfterEnemyLogic.bind(this));
       // Щёлкнули по союзнику
-    } else if (this.currentStatus === this.statuses.allied) {
+    } else if ((this.currentStatus === this.statuses.allied) && (this.selected !== point)) {
       this.gamePlay.deselectCell(this.selected.position);
       this.selected = point;
       this.gamePlay.selectCell(index);
