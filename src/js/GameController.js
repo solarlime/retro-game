@@ -205,6 +205,18 @@ export default class GameController {
   }
 
   onCellClick(index) {
+    function wrapperForActionsAfterEnemyLogic() {
+      if (this.selected.character.health <= 0) {
+        this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
+      }
+      this.gamePlay.redrawPositions(this.positionsToDraw);
+      this.selected = undefined;
+      // Проигрыш :(
+      if (!this.positionsToDraw.find((item) => item.side === this.sides.light.name)) {
+        GamePlay.showError('Game over!');
+      }
+    }
+
     // Выделен ли кто-то
     const point = this.positionsToDraw.find((item) => item.position === index);
     if (this.selected === undefined) {
@@ -230,13 +242,7 @@ export default class GameController {
             reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
           },
         )
-        .then(() => {
-          if (this.selected.character.health <= 0) {
-            this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
-          }
-          this.gamePlay.redrawPositions(this.positionsToDraw);
-          this.selected = undefined;
-        });
+        .then(wrapperForActionsAfterEnemyLogic.bind(this));
       // Щёлкнули по союзнику
     } else if (this.currentStatus === this.statuses.allied) {
       this.gamePlay.deselectCell(this.selected.position);
@@ -252,8 +258,23 @@ export default class GameController {
       if (victim.character.health <= 0) {
         this.positionsToDraw.splice(this.positionsToDraw.indexOf(victim), 1);
         this.gamePlay.redrawPositions(this.positionsToDraw);
-        this.selected = undefined;
         this.gamePlay.deselectAll();
+        // Убил противника: либо победа, либо он отвечает
+        if (!this.positionsToDraw.find((item) => item.side === this.sides.dark.name)) {
+          this.selected = undefined;
+          GamePlay.showError('Victory!');
+        } else {
+          this.moveDarksAndAttack()
+            .then(
+              (damageToAttacker) => this.gamePlay
+                .showDamage(this.selected.position, damageToAttacker),
+              (reject) => {
+                // eslint-disable-next-line no-param-reassign,max-len
+                reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
+              },
+            )
+            .then(wrapperForActionsAfterEnemyLogic.bind(this));
+        }
       } else {
         this.gamePlay.showDamage(index, damageToVictim)
           .then(() => this.gamePlay.redrawPositions(this.positionsToDraw))
@@ -267,14 +288,7 @@ export default class GameController {
               reject.revenger.position = this.moveRevenger(reject.revenger, this.selected, reject.darks);
             },
           )
-          .then(() => {
-            // Если убили - удаляем с поля
-            if (this.selected.character.health <= 0) {
-              this.positionsToDraw.splice(this.positionsToDraw.indexOf(this.selected), 1);
-            }
-            this.gamePlay.redrawPositions(this.positionsToDraw);
-            this.selected = undefined;
-          });
+          .then(wrapperForActionsAfterEnemyLogic.bind(this));
       }
       //  В ином случае - ошибка
     } else {
