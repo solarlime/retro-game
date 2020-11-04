@@ -41,13 +41,14 @@ export default class GameController {
 
   init() {
     this.gamePlay.drawUi(themes.prairie);
+    this.theme = themes.prairie;
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addNewGameListener(this.newGame.bind(this, this.level));
     this.gamePlay.addEscListener(this.onEsc.bind(this));
-    // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
-    // this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
+    this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
   }
 
   newGame(level = 1) {
@@ -97,9 +98,41 @@ export default class GameController {
         (item) => new PositionedCharacter(item, this.sides.dark.name, choosePoint(dark)),
       ));
       this.positionsToDraw = this.positionsToDraw.flat();
-      GamePlay.showError('The enemies are furious! Be careful!');
+      GamePlay.showMessage('The enemies are furious! Be careful!');
     }
     this.gamePlay.redrawPositions(this.positionsToDraw);
+  }
+
+  loadGame() {
+    this.gamePlay.deselectAll();
+    this.selected = undefined;
+    const loaded = this.stateService.load();
+    if (!loaded) {
+      GamePlay.showError('No game to load!');
+    } else {
+      this.level = loaded.level;
+      this.positionsToDraw = loaded.positions;
+      this.theme = loaded.theme;
+      this.score = loaded.level;
+      this.gamePlay.drawUi(loaded.theme);
+      this.gamePlay.redrawPositions(this.positionsToDraw);
+      GamePlay.showMessage('Loaded!');
+    }
+  }
+
+  saveGame() {
+    if (!this.positionsToDraw.length && !this.score) {
+      GamePlay.showError('No game to save!');
+    } else {
+      const state = {
+        level: this.level,
+        positions: this.positionsToDraw,
+        theme: this.theme,
+        score: this.score,
+      };
+      this.stateService.save(state);
+      GamePlay.showMessage('Saved!');
+    }
   }
 
   positions() {
@@ -136,15 +169,19 @@ export default class GameController {
     switch (this.level) {
       case 2:
         this.gamePlay.drawUi(themes.desert);
+        this.theme = themes.desert;
         break;
       case 3:
         this.gamePlay.drawUi(themes.arctic);
+        this.theme = themes.arctic;
         break;
       case 4:
         this.gamePlay.drawUi(themes.mountain);
+        this.theme = themes.mountain;
         break;
       default:
         this.gamePlay.drawUi(themes.prairie);
+        this.theme = themes.prairie;
         break;
     }
     return this.level;
@@ -266,7 +303,7 @@ export default class GameController {
       // Проигрыш :(
       if (!this.positionsToDraw.find((item) => item.side === this.sides.light.name)) {
         this.gamePlay.drawUi(themes.prairie);
-        GamePlay.showError('Game over!');
+        GamePlay.showMessage('Game over!');
       }
     }
 
@@ -317,9 +354,9 @@ export default class GameController {
           this.score = this.positionsToDraw.reduce((accumulator, hero) => accumulator + hero.character.health, this.score);
           if (this.level === 4) {
             this.gamePlay.drawUi(themes.prairie);
-            GamePlay.showError(`Victory! Your score is ${this.score}.`);
+            GamePlay.showMessage(`Victory! Your score is ${this.score}.`);
           } else {
-            GamePlay.showError(`Level up! Your score is ${this.score}.`);
+            GamePlay.showMessage(`Level up! Your score is ${this.score}.`);
             this.newGame(this.levelUp());
           }
         } else {
