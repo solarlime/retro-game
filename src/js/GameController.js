@@ -40,18 +40,20 @@ export default class GameController {
   }
 
   init() {
-    this.gamePlay.drawUi(themes.prairie);
     this.theme = themes.prairie;
+    this.gamePlay.drawUi(this.theme);
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addNewGameListener(this.newGame.bind(this, this.level));
+    this.gamePlay.addNewGameListener(this.newGame.bind(this, this.level, this.theme));
     this.gamePlay.addEscListener(this.onEsc.bind(this));
     this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
     this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
   }
 
-  newGame(level = 1) {
+  newGame(level = 1, theme = themes.prairie) {
+    this.level = level;
+    this.gamePlay.drawUi(theme);
     this.gamePlay.deselectAll();
     this.selected = undefined;
     const light = this.sidePositions(this.sides.light);
@@ -357,7 +359,7 @@ export default class GameController {
             GamePlay.showMessage(`Victory! Your score is ${this.score}.`);
           } else {
             GamePlay.showMessage(`Level up! Your score is ${this.score}.`);
-            this.newGame(this.levelUp());
+            this.newGame(this.levelUp(), this.theme);
           }
         } else {
           this.moveDarksAndAttack()
