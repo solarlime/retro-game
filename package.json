@@ -1,5 +1,5 @@
 {
-  "name": "ajs-diploma",
+  "name": "retro-game",
   "version": "1.0.0",
   "description": "Diploma (Advanced JS)",
   "main": "index.js",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/solarlime/ajs-diploma.git"
+    "url": "git+https://github.com/solarlime/retro-game.git"
   },
   "author": "solarlime",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "babel-loader": "^8.1.0",
     "css-loader": "^3.6.0",
     "eslint": "^6.6.0",
-    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",
     "html-loader": "^0.5.5",
     "html-webpack-plugin": "^3.2.0",
