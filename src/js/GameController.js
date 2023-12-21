@@ -76,12 +76,8 @@ export default class GameController {
       const darkTeam = generateTeam(this.sides.dark.characters, level, 2);
       const lightTeam = generateTeam(this.sides.light.characters, level, 2);
       this.positionsToDraw = [
-        lightTeam.map((item) => new PositionedCharacter(
-          item, this.sides.light.name, choosePoint(light),
-        )),
-        darkTeam.map((item) => new PositionedCharacter(
-          item, this.sides.dark.name, choosePoint(dark),
-        )),
+        lightTeam.map((item) => new PositionedCharacter(item, this.sides.light.name, choosePoint(light))),
+        darkTeam.map((item) => new PositionedCharacter(item, this.sides.dark.name, choosePoint(dark))),
       ].flat();
     //  Иначе:
     } else {
@@ -275,9 +271,7 @@ export default class GameController {
     const darks = this.positionsToDraw.filter((hero) => hero.side === this.sides.dark.name);
     // Атаковать будет самый сильный персонаж
     const revenger = darks.find(
-      (item) => item.character.attack === Math.max.apply(
-        null, darks.map((hero) => hero.character.attack),
-      ),
+      (item) => item.character.attack === Math.max.apply(null, darks.map((hero) => hero.character.attack)),
     );
     return new Promise((resolve, reject) => {
       const damageToAttacker = Math.max(revenger.character.attack

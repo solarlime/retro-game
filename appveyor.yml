@@ -1,17 +1,17 @@
-image: Ubuntu2004
+image: Ubuntu2204
 
-stack: node 10
+stack: node 20
 
 branches:
   only:
     - master
 
-cache: node_modules
+cache: [node_modules]
 
 install:
   - npm install
 
-build: off
+build: false
 
 build_script:
   - npm run build

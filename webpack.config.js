@@ -31,15 +31,14 @@ module.exports = {
       },
       {
         test: /\.png$/,
-        use: {
-          loader: 'url-loader',
-        },
+        type: 'asset/resource',
       },
     ],
   },
   plugins: [
     new HtmlWebPackPlugin({
       template: './src/index.html',
+      favicon: './src/img/characters/vampire.png',
       filename: './index.html',
     }),
     new MiniCssExtractPlugin({
